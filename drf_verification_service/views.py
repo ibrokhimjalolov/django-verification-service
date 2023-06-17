@@ -1,7 +1,7 @@
 import random
 from uuid import uuid4
 from rest_framework import status
-from rest_framework.generics import GenericAPIView
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from .settings import get_email_settings
 from .utils import get_verification_data, VerificationData
@@ -9,7 +9,7 @@ from . import signals
 from . import exceptions
 
 
-class EmailSendVerificationCodeView(GenericAPIView):
+class EmailSendVerificationCodeView(APIView):
     """
     Send verification code to email
     """
@@ -21,7 +21,7 @@ class EmailSendVerificationCodeView(GenericAPIView):
     }
 
     def __init__(self, *args, **kwargs):
-        self.settings = get_email_settings()
+        self.email_settings = get_email_settings()
         super().__init__(*args, **kwargs)
 
     def post(self, request, *args, **kwargs):
@@ -34,7 +34,7 @@ class EmailSendVerificationCodeView(GenericAPIView):
                 attempt=0,
                 verified=False
             )
-            email_verification.save_state(expire=self.settings["code_expiration"])
+            email_verification.save_state(expire=self.email_settings["code_expiration"])
             signals.email_verification_send.send(sender=self.__class__, data=validated_data)
         except exceptions.BaseVerificationException as e:
             response = {
@@ -52,12 +52,12 @@ class EmailSendVerificationCodeView(GenericAPIView):
 
     def generate_code(self):
         return "".join(random.choices(
-            self.settings["code_charset"],
-            k=self.settings["code_length"]
+            self.email_settings["code_charset"],
+            k=self.email_settings["code_length"]
         ))
 
 
-class EmailVerifyVerificationCodeView(GenericAPIView):
+class EmailVerifyVerificationCodeView(APIView):
     """
     Send verification code to email
     """
